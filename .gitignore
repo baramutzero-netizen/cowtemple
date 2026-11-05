@@ -3,3 +3,5 @@ server/.wrangler/
 tools/__pycache__/
 *.mp4
 *.webm
+server/.dev.vars
+.dev.vars

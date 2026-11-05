@@ -356,8 +356,12 @@ function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
 function goTo(x, y, seat = -1) { if (!me) return; if (me.seat >= 0) standUp(); const p = seat >= 0 ? SEATS[seat] : walkable(x, y); target = { x: p.x, y: seat >= 0 ? p.y + 2 : p.y, seat }; }
 function standUp() { if (!me || me.seat < 0) return; seats[me.seat] = null; me.x = SEATS[me.seat].x; me.y = SEATS[me.seat].y + 10; me.seat = -1; send({ t: 'up' }); refreshButtons(); }
 function sitDown(c) { if (seats[c] !== null && seats[c] !== me.id) { toast('이미 다른 동자승이 앉아 있어요'); return; } seats[c] = me.id; me.seat = c; send({ t: 'sit', c }); refreshButtons(); }
+const COOL = { tok: 150, hap: 1400, bow: 1500 }, lastAct = {};   // ms between actions: quick taps still flow, holding a key does not
 function act(a) {
   if (!me) return; initAudio(); const now = performance.now();
+  if (now - (lastAct[a] || -1e9) < COOL[a]) return;
+  if ((a === 'hap' || a === 'bow') && me.act && me.act !== 'tok' && now - me.actT < 1400) return;   // finish one bow before the next
+  lastAct[a] = now;
   me.act = a; me.actT = now;
   if (a === 'tok') {
     if (me.seat < 0) { toast('방석에 앉아야 목탁을 칠 수 있어요'); return; }
@@ -562,7 +566,7 @@ function boot() {
   const openOpt = () => { buildLooks(); paintIntro(); $('opt').hidden = false; };
   $('optBtn').onclick = openOpt; $('optOpen2').onclick = openOpt; $('introCv').onclick = openOpt; $('optClose').onclick = () => { $('opt').hidden = true; };
   cv.addEventListener('pointerdown', e => { if (!me) return; initAudio(); const p = toWorld(e), c = seatAt(p.x, p.y); if (me.seat >= 0 && c === me.seat) { act('tok'); return; } if (c >= 0) { if (seats[c] !== null) { toast('이미 다른 동자승이 앉아 있어요'); return; } goTo(0, 0, c); } else goTo(p.x, p.y); });
-  window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; keys[e.code] = true; if (e.code === 'Space') { e.preventDefault(); act('tok'); } if (e.code === 'KeyB') act('bow'); if (e.code === 'KeyH') act('hap'); });
+  window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; keys[e.code] = true; if (e.code === 'Space') e.preventDefault(); if (e.repeat) return; if (e.code === 'Space') act('tok'); if (e.code === 'KeyB') act('bow'); if (e.code === 'KeyH') act('hap'); });
   window.addEventListener('keyup', e => { keys[e.code] = false; });
   $('bTok').onclick = () => act('tok'); $('bBow').onclick = () => act('bow'); $('bHap').onclick = () => act('hap');
   $('bSeat').onclick = () => { if (!me) return; if (me.seat >= 0) standUp(); else { const c = nearestFreeSeat(); if (c < 0) toast('빈 방석이 없어요. 마당에서 함께 합장해요.'); else goTo(0, 0, c); } };
