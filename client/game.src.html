@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>소 귀에 경 읽는 절</title>
+<meta name="description" content="말 대신 목탁을 치는 온라인 절. 동자승이 되어 방석에 앉아 목탁을 치면, 소들이 한쪽 귀로 듣고 반대쪽 귀로 흘려보냅니다.">
+<style>
+/*__FONTS__*/
+:root { --ink: #1b1418; --panel: #2a2026; --line: #4a3a42; --cream: #f4ead9; --dim: #b8a597; --gold: #f3c34f; --leaf: #6cc0a4; --red: #d9443a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); color: var(--cream); font: 15px/1.4 'Galmuri11', sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+#app { position: fixed; inset: 0; display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+header { padding: 8px 12px 6px; background: #271d23; border-bottom: 3px solid #000; display: flex; gap: 10px; align-items: center; }
+header h1 { margin: 0; font: 18px 'Galmuri14', sans-serif; color: var(--gold); white-space: nowrap; }
+header .room { color: var(--dim); font-size: 13px; flex: 1; }
+header button { background: none; border: 0; color: var(--cream); font: 20px 'Galmuri14'; cursor: pointer; padding: 2px 6px; }
+#counts { padding: 5px 12px; font-size: 13px; color: var(--leaf); background: #1f171c; border-bottom: 2px solid #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#counts b { color: var(--gold); font-weight: normal; }
+#stage { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; position: relative; }
+#cv { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; touch-action: none; cursor: pointer; }
+#toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(10,8,9,.88); border: 2px solid var(--line); padding: 6px 12px; font-size: 13px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .3s; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#toast.on { opacity: 1; }
+nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px max(10px, calc(50% - 260px)) 10px; background: #271d23; border-top: 3px solid #000; }
+nav button { font: 15px 'Galmuri14', sans-serif; color: var(--ink); background: var(--gold); border: 0; box-shadow: 0 0 0 2px #000, inset 0 -4px 0 #a8822a; padding: 10px 4px 12px; cursor: pointer; }
+nav button:active { transform: translateY(2px); box-shadow: 0 0 0 2px #000, inset 0 -2px 0 #a8822a; }
+nav button:disabled { background: #6a5a52; box-shadow: 0 0 0 2px #000; color: #2a2026; }
+nav button small { display: block; font: 11px 'Galmuri11'; opacity: .8; }
+.over { position: fixed; inset: 0; background: rgba(15,10,13,.92); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 5; }
+.over[hidden] { display: none; }
+.card { background: var(--panel); border: 3px solid #000; box-shadow: 0 0 0 3px var(--line); padding: 20px; max-width: 380px; width: 100%; text-align: center; }
+.card h2 { margin: 0 0 4px; font: 26px 'Galmuri14'; color: var(--gold); }
+.card .sub { color: var(--dim); margin-bottom: 14px; }
+.card p { margin: 8px 0; }
+.looks { display: flex; gap: 8px; justify-content: center; margin: 14px 0; }
+.looks button { width: 38px; height: 38px; border: 3px solid #000; cursor: pointer; }
+.looks button.on { box-shadow: 0 0 0 3px var(--gold); }
+.big { font: 18px 'Galmuri14'; background: var(--gold); color: var(--ink); border: 0; box-shadow: 0 0 0 3px #000, inset 0 -5px 0 #a8822a; padding: 12px 26px 15px; cursor: pointer; margin-top: 6px; }
+.links { text-align: left; font-size: 13px; }
+.links a { color: var(--leaf); }
+.links section { margin: 10px 0; }
+.fine { font-size: 12px; color: var(--dim); }
+header .opt { font-size: 18px; }
+.lobby { max-width: 420px; }
+.tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
+.tabs button { flex: 1; font: 15px 'Galmuri14'; padding: 8px; background: #3a2c34; color: var(--dim); border: 2px solid #000; cursor: pointer; }
+.tabs button.on { background: var(--gold); color: var(--ink); }
+.list { max-height: 34vh; overflow: auto; text-align: left; border: 2px solid #000; background: #1f171c; }
+.list .row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #3a2c34; cursor: pointer; }
+.list .row:hover { background: #2e232a; }
+.list .row .t { flex: 1; min-width: 0; }
+.list .row .t b { display: block; font: 14px 'Galmuri14'; font-weight: normal; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list .row .t i { font-style: normal; font-size: 12px; color: var(--dim); }
+.list .row .n { font-size: 12px; color: var(--leaf); white-space: nowrap; }
+.list .row .n.full { color: var(--red); }
+.list .empty { padding: 14px; color: var(--dim); font-size: 13px; text-align: center; }
+.ghost { font: 15px 'Galmuri14'; background: none; color: var(--gold); border: 2px solid var(--gold); padding: 9px 16px; cursor: pointer; margin-top: 10px; }
+.form { text-align: left; max-height: 92vh; overflow: auto; }
+.form label { display: block; font: 14px 'Galmuri14'; margin: 12px 0 6px; color: var(--cream); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: 13px 'Galmuri11'; padding: 7px 10px; background: #3a2c34; color: var(--cream); border: 2px solid #000; cursor: pointer; }
+.chips button.on { background: var(--gold); color: var(--ink); }
+.form input { width: 100%; font: 16px 'Galmuri11'; padding: 9px; background: #1f171c; color: var(--cream); border: 2px solid var(--line); }
+.err { color: #ff8a80; min-height: 18px; font-size: 13px; margin-top: 8px; }
+.snds { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.snds button { font: 13px 'Galmuri11'; padding: 9px 6px; background: #3a2c34; color: var(--cream); border: 2px solid #000; cursor: pointer; }
+.snds button.on { background: var(--gold); color: var(--ink); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>소 귀에 경 읽는 절</h1><span class="room" id="room">입장 전</span><button id="optBtn" class="opt" aria-label="옵션">⚙</button><button id="menuBtn" aria-label="메뉴">≡</button></header>
+  <div id="counts">오늘 친 목탁 <b id="cTok">0</b>번 · 소 귀에 들어간 경 <b id="cEar">0</b>자 · 남은 경 <b>0</b>자</div>
+  <div id="stage"><canvas id="cv" width="224" height="300" aria-label="절 마당. 동자승들이 방석에 앉아 목탁을 치고, 소들이 듣고 있다."></canvas><div id="toast"></div></div>
+  <nav>
+    <button id="bHap">합장<small>인사</small></button>
+    <button id="bBow">절<small id="bowN">0 / 108</small></button>
+    <button id="bTok">목탁<small>탁!</small></button>
+    <button id="bSeat">빈 방석<small>찾아 앉기</small></button>
+  </nav>
+</div>
+<div class="over" id="intro">
+  <div class="card lobby">
+    <h2>소 귀에 경 읽는 절</h2>
+    <div class="sub">牛耳讀經寺 · 말 대신 목탁을 치는 절</div>
+    <canvas id="introCv" width="96" height="48" style="width:192px;height:96px;image-rendering:pixelated;cursor:pointer" title="옵션"></canvas>
+    <p style="margin:6px 0">방석에 앉아 목탁을 치면 소들이 경을 듣습니다. <span style="color:var(--dim)">한쪽 귀로.</span></p>
+    <div id="invite" class="fine" hidden></div>
+    <div class="tabs"><button data-t="basic" class="on">법당</button><button data-t="wish">발원 법당</button></div>
+    <div id="chList" class="list"><div class="empty">불러오는 중…</div></div>
+    <button class="big" id="enter">빈 법당으로 입장</button><br>
+    <button class="ghost" id="mkOpen">+ 발원 법당 열기</button> <button class="ghost" id="optOpen2">⚙ 옵션</button>
+    <p class="fine" style="margin-top:10px">채팅 없음 · 로그인 없음 · 개인 정보를 받지 않아요</p>
+  </div>
+</div>
+<div class="over" id="mk" hidden>
+  <div class="card form">
+    <h2 style="text-align:center">발원 법당 열기</h2>
+    <label>무엇을 위한 법당인가요?</label>
+    <div class="chips" id="mkCat"></div>
+    <label>발원 문구 <span class="fine">(20자까지)</span></label>
+    <input id="mkText" maxlength="20" autocomplete="off" placeholder="예: 어머니 수술이 잘 되기를">
+    <div class="fine" style="margin-top:6px">이름 대신 관계나 이니셜로 써 주세요(예: 어머니, K님). 링크와 전화번호는 넣을 수 없어요.</div>
+    <label>정원</label><div class="chips" id="mkCap"></div>
+    <label>공개</label><div class="chips" id="mkPub"></div>
+    <label>닫히는 때</label><div class="chips" id="mkDays"></div>
+    <div class="err" id="mkErr"></div>
+    <button class="big" id="mkGo" style="width:100%">열고 들어가기</button>
+    <button class="ghost" id="mkCancel" style="width:100%">취소</button>
+  </div>
+</div>
+<div class="over" id="opt" hidden>
+  <div class="card form">
+    <h2 style="text-align:center">옵션</h2>
+    <canvas id="optCv" width="64" height="32" style="display:block;margin:0 auto;width:192px;height:96px;image-rendering:pixelated"></canvas>
+    <label>승복 색</label><div class="looks" id="looks" style="justify-content:flex-start"></div>
+    <label>목탁 소리 <span class="fine">(누르면 들어 볼 수 있어요 · 같은 법당 사람들에게도 이 소리로 들려요)</span></label>
+    <div class="snds" id="snds"></div>
+    <label>소리</label>
+    <div class="chips"><button id="mute">소리 끄기</button><button id="npcBtn">목탁스님 반주 끄기</button></div>
+    <button class="big" id="optClose" style="width:100%;margin-top:16px">닫기</button>
+  </div>
+</div>
+<div class="over" id="menu" hidden>
+  <div class="card links">
+    <h2 style="text-align:center">메뉴</h2>
+    <section id="chActs"></section>
+    <section><button class="big" id="toLobby" style="width:100%">다른 법당 보기</button></section>
+    <section><b>같은 만든이의 다른 게임</b><br>
+      <a href="https://baramutzero-netizen.github.io/moktak/" target="_blank" rel="noopener">소 귀에 경 읽기</a> · <a href="https://baramutzero-netizen.github.io/josammosa/" target="_blank" rel="noopener">조삼모사</a> · <a href="https://baramutzero-netizen.github.io/skyspit/" target="_blank" rel="noopener">앙천이타</a> · <a href="https://baramutzero-netizen.github.io/barnfix/" target="_blank" rel="noopener">소 잃고 외양간 고친다</a> · <a href="https://baramutzero-netizen.github.io/palmsky/" target="_blank" rel="noopener">이장폐천</a> · <a href="https://baramutzero-netizen.github.io/stumprabbit/" target="_blank" rel="noopener">수주대토</a></section>
+    <section class="fine">로그인도 채팅도 없어요. 서버에는 법당별 지금 인원과 목탁·절·합장 횟수의 합계, 그리고 발원 법당의 문구만 남고, 누가 쳤는지는 남지 않아요. 발원 법당을 여는 횟수를 하루 3개로 제한하려고 접속 주소를 그날만 쓰는 암호로 바꿔 세어요. 도트 그림과 소리는 직접 그리고 합성했어요. 글꼴: 갈무리(Galmuri) © Lee Minseo, SIL OFL 1.1. 경문은 반야심경 한글 독음입니다.<br>문의 baramutzero@gmail.com</section>
+    <button class="big" id="menuClose" style="width:100%">돌아가기</button>
+  </div>
+</div>
+<script>
+'use strict';
+// ───────── config ─────────
+// The realtime server (Cloudflare Worker). Empty = practice mode with practice monks, no network.
+const SERVER = (new URLSearchParams(location.search).get('server')) || '/*__SERVER__*/';
+const IMG = /*__IMAGES__*/{};
+const W = 224, H = 300;
+const SUTRA = '관자재보살행심반야바라밀다시조견오온개공도일체고액사리자색불이공공불이색색즉시공공즉시색수상행식역부여시사리자시제법공상불생불멸불구부정부증불감시고공중무색무수상행식무안이비설신의무색성향미촉법무안계내지무의식계무무명역무무명진내지무노사역무노사진무고집멸도무지역무득이무소득고보리살타의반야바라밀다고심무가애무가애고무유공포원리전도몽상구경열반';
+const ROBES = ['#9aa3ad', '#a8865a', '#c9a24a', '#8a9a7a', '#a88aa8', '#7a8aa8'];
+const COWS = ['hanwoo', 'holstein', 'heuku', 'chik', 'white'];
+const COWX = [30, 66, 102, 138, 174], COWY = 88;
+const ALLSEATS = []; for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) ALLSEATS.push({ x: [42, 84, 140, 182][i], y: 150 + j * 32 });
+let SEATS = ALLSEATS;
+function setSeatCount(n) { SEATS = n >= 16 ? ALLSEATS : n >= 8 ? ALLSEATS.slice(4, 12) : n >= 4 ? [5, 6, 9, 10].map(i => ALLSEATS[i]) : [5, 6].map(i => ALLSEATS[i]); }
+const CATS = [['heal', '쾌유 기원', '쾌유를 비는 법당', '예: 어머니 수술이 잘 되기를'], ['pass', '합격 기원', '합격을 비는 법당', '예: 동생 수능 대박'], ['family', '가족 평안', '가족의 평안을 비는 법당', '예: 우리 가족 모두 건강하게'], ['memorial', '추모·명복', '명복을 비는 법당', '예: 할머니 편히 쉬세요'], ['thanks', '감사', '감사를 올리는 법당', '예: 무사히 졸업했습니다'], ['free', '직접 쓰기', '발원 법당', '예: 다들 마음 편한 하루']];
+const QUIET = ['heal', 'memorial'];
+const SOUNDS = ['기본 목탁', '맑은 목탁', '큰 목탁', '대나무 딱따기', '싱잉볼', '8비트 목탁'];
+const COWSAY = ['음메', '…', '(듣는 척)', '응?', 'Zzz', '음메~', '(한쪽 귀로)', '(되새김질)'];
+
+// ───────── state ─────────
+const $ = id => document.getElementById(id);
+const cv = $('cv'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+let me = null, peers = new Map(), seats = new Array(16).fill(null), ws = null, online = false, practice = false, roomN = 0, look = 0, snd = 0, CH = null, leaving = false;
+const params = new URLSearchParams(location.search), inviteCh = params.get('ch');
+let myTok = 0, myBow = 0, sutraI = 0, stats = { online: 0, today: {}, all: {} }, localTok = 0;
+const flights = [], bubbles = [], cowHit = [0, 0, 0, 0, 0];
+let keys = {}, target = null, lastSent = 0, sentXY = '', toastT = 0;
+try { look = +(localStorage.getItem('ct-look') || 0) % ROBES.length; snd = +(localStorage.getItem('ct-snd') || 0) % SOUNDS.length; myBow = +(localStorage.getItem('ct-bow') || 0) % 108; } catch (e) {}
+
+// ───────── images ─────────
+const imgs = {}; let imgReady = 0;
+for (const k in IMG) { const im = new Image(); im.onload = () => imgReady++; im.src = IMG[k]; imgs[k] = im; }
+
+// ───────── crisp pixel text ─────────
+const txtCache = new Map();
+function hex(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+function ptext(c, s, px, py, color, al = 'left', size = 12) {
+  const key = s + '|' + color + '|' + size; let t = txtCache.get(key);
+  if (!t) {
+    t = document.createElement('canvas'); const m = t.getContext('2d'); m.font = size + 'px Galmuri11'; t.width = Math.ceil(m.measureText(s).width) + 2; t.height = size + 2;
+    m.font = size + 'px Galmuri11'; m.textBaseline = 'top'; m.fillStyle = '#fff'; m.fillText(s, 1, 1);
+    const id = m.getImageData(0, 0, t.width, t.height), [R, G, B] = hex(color);
+    for (let i = 0; i < id.data.length; i += 4) { const on = id.data[i + 3] > 110; id.data[i] = R; id.data[i + 1] = G; id.data[i + 2] = B; id.data[i + 3] = on ? 255 : 0; }
+    m.putImageData(id, 0, 0); if (txtCache.size > 400) txtCache.clear(); txtCache.set(key, t);
+  }
+  const x = al === 'center' ? px - (t.width >> 1) : al === 'right' ? px - t.width : px;
+  c.drawImage(t, Math.round(x), Math.round(py)); return t.width;
+}
+function stext(c, s, x, y, col, al, size) { ptext(c, s, x + 1, y + 1, '#000000', al, size); return ptext(c, s, x, y, col, al, size); }
+function bubble(s, x, y, col = '#2a1a12') { const w = ptext(ctx, s, -900, -900, col) + 6, bx = Math.max(2, Math.min(W - w - 2, Math.round(x - w / 2))); ctx.fillStyle = '#000'; ctx.fillRect(bx - 1, y - 1, w + 2, 15); ctx.fillStyle = '#fff8e8'; ctx.fillRect(bx, y, w, 13); ctx.fillRect(Math.round(x) - 1, y + 13, 3, 2); ptext(ctx, s, bx + 3, y, col); }
+
+// ───────── background (drawn once) ─────────
+const bg = document.createElement('canvas'); bg.width = W; bg.height = H;
+function lerpC(a, b, t) { const A = hex(a), B = hex(b); return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',') + ')'; }
+function makeBg() {
+  const x = bg.getContext('2d'), P = (a, b, w, h, c) => { x.fillStyle = c; x.fillRect(Math.round(a), Math.round(b), w, h); };
+  for (let y = 0; y < 60; y += 2) P(0, y, W, 2, lerpC('#f3c08a', '#f8e4c0', y / 60));
+  for (let px = 0; px < W; px += 2) { const h = 18 + 8 * Math.sin(px * 0.03 + 1) + 4 * Math.sin(px * 0.09); P(px, 58 - h, 2, h, '#9aa88a'); }
+  for (let px = 0; px < W; px += 2) { const h = 10 + 5 * Math.sin(px * 0.05 + 3); P(px, 64 - h, 2, h, '#7a9070'); }
+  // yard + stone path
+  P(0, 64, W, H - 64, '#d9c9a8'); for (let i = 0; i < 200; i++) P((i * 97) % W, 84 + (i * 53) % 210, 2, 1, i % 2 ? '#c8b896' : '#e6d8ba');
+  P(100, 126, 24, 166, '#cdbb98'); for (let y = 126; y < 292; y += 10) P(100, y, 24, 1, '#bba886');
+  // 법당
+  P(38, 64, 148, 14, '#a89a88'); P(34, 76, 156, 5, '#9a8c7a'); for (let s = 0; s < 3; s++) P(96 - s * 4, 81 + s * 2, 32 + s * 8, 2, s % 2 ? '#b8aa96' : '#c8baa6');
+  P(48, 34, 128, 30, '#e8dcc0'); for (let i = 0; i < 5; i++) P(50 + i * 30, 34, 4, 30, '#b8443a');
+  for (let i = 0; i < 4; i++) { const bx = 56 + i * 30; P(bx, 39, 22, 22, '#c09a5a'); for (let k = 0; k < 22; k += 4) { P(bx + k, 39, 1, 22, '#8a6a3a'); P(bx, 39 + k, 22, 1, '#8a6a3a'); } }
+  P(92, 27, 40, 8, '#2a3a52'); P(94, 29, 36, 4, '#f3c34f'); P(96, 30, 32, 2, '#2a3a52');
+  for (let r = 0; r < 18; r++) { const w = 104 + r * 4 + Math.round(Math.pow(r / 17, 3) * 26); P(112 - w / 2, 9 + r, w, 1, r % 4 === 3 ? '#3a3a44' : '#4a4a56'); }
+  P(30, 26, 164, 3, '#2a2a34'); P(22, 24, 10, 3, '#2a2a34'); P(192, 24, 10, 3, '#2a2a34'); P(66, 6, 92, 4, '#3a3a44');
+  for (let i = 0; i < 21; i++) P(36 + i * 7.5, 28, 4, 2, '#6a8a6a');
+  // pines and lanterns
+  for (const tx of [2, 206]) { P(tx + 6, 40, 4, 44, '#6a4a2a'); for (let k = 0; k < 4; k++) P(tx - k * 2, 22 + k * 10, 16 + k * 4, 5, k % 2 ? '#3a6a4a' : '#4a7a5a'); }
+  for (const lx of [8, 208]) { P(lx, 120, 8, 20, '#a8a090'); P(lx - 3, 114, 14, 6, '#8a8478'); P(lx + 2, 124, 4, 6, '#f3d08a'); P(lx - 2, 138, 12, 4, '#8a8478'); }
+  // straw mats for the cows
+  for (const cx of COWX) { P(cx - 3, 110, 30, 5, '#c8a860'); P(cx - 3, 114, 30, 1, '#a88a48'); }
+  // gate
+  P(0, 292, W, 8, '#b8a888'); P(92, 286, 4, 14, '#b8443a'); P(128, 286, 4, 14, '#b8443a'); P(86, 282, 52, 5, '#4a4a56');
+}
+makeBg();
+
+// ───────── the little monk (동자승), drawn from primitives at 1× ─────────
+function shade(c, k) { const [r, g, b] = hex(c); return '#' + [r, g, b].map(v => Math.max(0, Math.round(v * k)).toString(16).padStart(2, '0')).join(''); }
+function monk(x, y, pose, t, lk, front, cx = ctx) {
+  x = Math.round(x); y = Math.round(y);
+  const P = (a, b, w, h, c) => { cx.fillStyle = c; cx.fillRect(x + a, y + b, w, h); };
+  const R = ROBES[lk % ROBES.length], RS = shade(R, 0.78), K = '#2a1a12', SK = '#efc49a', SS = '#d8a87a', HL = '#fbe4cc', KS = '#b8443a';
+  const head = (hy) => { P(-3, hy - 1, 6, 1, K); P(-4, hy, 8, 6, K); P(-3, hy, 6, 6, SK); P(-4, hy + 1, 1, 4, SK); P(3, hy + 1, 1, 4, SK); P(-5, hy + 1, 1, 4, K); P(4, hy + 1, 1, 4, K); P(-3, hy + 6, 6, 1, K); P(-2, hy, 2, 1, HL); P(2, hy + 3, 1, 3, SS);
+    if (front) { P(-2, hy + 3, 1, 1, '#1b1418'); P(1, hy + 3, 1, 1, '#1b1418'); P(-3, hy + 4, 1, 1, '#e8907a'); P(2, hy + 4, 1, 1, '#e8907a'); } else { P(-5, hy + 2, 1, 2, SS); P(4, hy + 2, 1, 2, SS); } };
+  if (pose === 'walk' || pose === 'stand') {
+    const f = pose === 'walk' ? Math.floor(t * 6) % 2 : 0, bob = pose === 'walk' && f ? -1 : 0;
+    P(-4 + (f ? 1 : 0), -2, 3, 2, K); P(1 - (f ? 1 : 0), -2, 3, 2, K);
+    P(-5, -10 + bob, 10, 8, K); P(-4, -10 + bob, 8, 8, R); P(-4, -3 + bob, 8, 1, RS); P(3, -10 + bob, 1, 7, RS);
+    for (let i = 0; i < 6; i++) P((front ? 2 - i : -3 + i), -10 + i + bob, 1, 1, KS);
+    if (front) { P(-6, -6 + bob, 1, 2, SK); P(5, -6 + bob, 1, 2, SK); }
+    head(-17 + bob); return;
+  }
+  // seated poses, seen from behind (facing the cows)
+  const body = (dy = 0) => { P(-6, -7 + dy, 12, 7, K); P(-5, -7 + dy, 10, 6, R); P(-5, -2 + dy, 10, 1, RS); P(4, -7 + dy, 1, 6, RS); for (let i = 0; i < 5; i++) P(-4 + i, -7 + i + dy, 1, 1, KS); };
+  if (pose === 'sit') { body(); head(-14); }
+  else if (pose === 'hap') { body(); P(-8, -9, 3, 3, K); P(-7, -8, 2, 2, R); P(5, -9, 3, 3, K); P(5, -8, 2, 2, R); head(-14); P(-1, -17, 2, 3, K); P(0, -17, 1, 2, SK); }
+  else if (pose === 'bow') { P(-7, -5, 14, 5, K); P(-6, -5, 12, 4, R); P(-6, -2, 12, 1, RS); for (let i = 0; i < 4; i++) P(-5 + i * 2, -5 + (i % 2), 1, 1, KS); P(-4, -1, 3, 1, HL); P(1, -1, 3, 1, HL); }
+  else if (pose === 'tok' || pose === 'tokhit') {
+    body(); head(-14);
+    if (pose === 'tok') { P(5, -12, 2, 5, K); P(5, -11, 1, 4, R); P(6, -19, 1, 7, '#8a5a34'); P(5, -21, 3, 2, '#6a4424'); }
+    else { P(4, -8, 3, 3, K); P(4, -7, 2, 2, R); P(1, -10, 4, 1, '#8a5a34'); P(0, -11, 2, 2, '#6a4424'); }
+  }
+}
+
+// ───────── sound (all synthesized) ─────────
+let AC = null, master, amb, muted = false, npcOn = true;
+try { muted = localStorage.getItem('ct-mute') === '1'; npcOn = localStorage.getItem('ct-npc') !== '0'; } catch (e) {}
+let NOISE;
+function initAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(AC.destination);
+    master = AC.createGain(); master.gain.value = muted ? 0 : 0.85; master.connect(comp);
+    NOISE = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // wind bed
+    const src = AC.createBufferSource(), f = AC.createBiquadFilter(); amb = AC.createGain(); src.buffer = NOISE; src.loop = true; f.type = 'lowpass'; f.frequency.value = 420; amb.gain.value = 0.035; src.connect(f); f.connect(amb); amb.connect(master); src.start();
+  } catch (e) { AC = null; }
+}
+function osc(type, fr, t, dur, vol, a = 0.002) { const o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.value = fr; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05); return o; }
+function noise(t, dur, vol, ftype, fr, q = 1) { const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = NOISE; f.type = ftype; f.frequency.value = fr; f.Q.value = q; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random()); s.stop(t + dur + 0.05); }
+function tok(vol = 0.6, pitch = 1, kind = snd) {
+  if (!AC) return; const t = AC.currentTime;
+  if (kind === 3) { // 대나무 딱따기: dry hollow clack
+    noise(t, 0.035, vol * 0.5, 'bandpass', 1800 * pitch, 3); const o = osc('triangle', 1100 * pitch, t, 0.05, vol * 0.25, 0.001); o.frequency.exponentialRampToValueAtTime(700 * pitch, t + 0.04); return;
+  }
+  if (kind === 4) { // 싱잉볼: soft strike, long shimmering ring
+    [[1, 2.6], [2.71, 1.6], [5.1, 0.8]].forEach(([r, d], i) => { const o = osc('sine', 330 * pitch * r, t, d, vol * [0.16, 0.07, 0.03][i], 0.004); o.detune.setValueAtTime(0, t); o.detune.linearRampToValueAtTime(i ? 6 : 3, t + d); }); noise(t, 0.02, vol * 0.08, 'bandpass', 2000, 2); return;
+  }
+  if (kind === 5) { // 8비트 목탁
+    const o = osc('square', 880 * pitch, t, 0.06, vol * 0.12, 0.001); o.frequency.setValueAtTime(660 * pitch, t + 0.025); osc('square', 1320 * pitch, t, 0.02, vol * 0.06, 0.001); return;
+  }
+  const b = [640, 900, 430][kind] * pitch;
+  const o = osc('sine', b * 1.9, t, 0.07, vol * 0.5, 0.001); o.frequency.exponentialRampToValueAtTime(b * 1.3, t + 0.012);
+  [[1, kind === 2 ? 0.5 : 0.35], [2.76, 0.18], [5.4, 0.08]].forEach(([r, d], i) => osc('sine', b * r, t + 0.005, d, vol * [0.24, 0.1, 0.05][i]));
+  noise(t, 0.02, vol * 0.15, 'bandpass', kind === 1 ? 3200 : 2400, 2);
+}
+function moo(vol = 0.08) {
+  if (!AC) return; const t = AC.currentTime, o = AC.createOscillator(), f1 = AC.createBiquadFilter(), f2 = AC.createBiquadFilter(), g = AC.createGain(), base = 100 + Math.random() * 30;
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(base * 1.1, t); o.frequency.linearRampToValueAtTime(base * 1.25, t + 0.25); o.frequency.exponentialRampToValueAtTime(base * 0.85, t + 0.8);
+  f1.type = 'bandpass'; f1.frequency.setValueAtTime(400, t); f1.frequency.linearRampToValueAtTime(700, t + 0.3); f1.Q.value = 4; f2.type = 'bandpass'; f2.frequency.value = 1100; f2.Q.value = 6;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.08); g.gain.setValueAtTime(vol, t + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+  o.connect(f1); o.connect(f2); f1.connect(g); f2.connect(g); g.connect(master); o.start(t); o.stop(t + 0.95);
+}
+function bell(vol = 0.3) { if (!AC) return; const t = AC.currentTime; [[82, 6], [139, 4.5], [207, 3.5], [296, 2.5], [412, 1.6]].forEach(([fr, d], i) => osc('sine', fr, t, d, vol * [0.5, 0.32, 0.22, 0.14, 0.08][i], 0.01)); noise(t, 0.08, vol * 0.2, 'lowpass', 300); }
+function chirp() { if (!AC) return; const t = AC.currentTime; for (let k = 0; k < 2 + (Math.random() * 3 | 0); k++) { const o = osc('sine', 2800 + Math.random() * 900, t + k * 0.11, 0.07, 0.02); o.frequency.exponentialRampToValueAtTime(3600 + Math.random() * 600, t + k * 0.11 + 0.05); } }
+
+// ───────── flights: a syllable goes in one ear and out the other ─────────
+function launch(fromX, fromY, cow, ch, mine) {
+  const cx = COWX[cow]; if (CH && CH.quiet) { flights.push({ t0: performance.now(), x0: fromX, y0: fromY, ch, up: 1, mine, dx: (Math.random() - 0.5) * 40 }); while (flights.length > 60) flights.shift(); return; }
+  flights.push({ t0: performance.now(), x0: fromX, y0: fromY, cow, ch, ear1: [cx - 1, COWY + 8], ear2: [cx + 25, COWY + 8], dir: Math.random() < 0.5 ? -1 : 1, mine });
+  while (flights.length > 60) flights.shift();
+}
+function nearestCow(x) { let b = 0, d = 1e9; COWX.forEach((cx, i) => { const dd = Math.abs(cx + 12 - x); if (dd < d) { d = dd; b = i; } }); return b; }
+
+// ───────── draw ─────────
+let npcT = 0, npcHit = -9;
+function draw(now) {
+  const t = now / 1000;
+  ctx.drawImage(bg, 0, 0);
+  // 목탁스님 NPC (from 소 귀에 경 읽기), at the left by the cows
+  if (imgs.monk && imgs.monk.complete) { const hit = now - npcHit < 140; ctx.drawImage(imgs.monk, hit ? 32 : 0, 0, 32, 28, 176, 254, 32, 28); if (imgs.moktak) ctx.drawImage(imgs.moktak, hit ? 16 : 0, 0, 16, 12, 200, 270, 16, 12); }
+  // cows
+  COWS.forEach((k, i) => { const im = imgs['cow_' + k]; if (!im || !im.complete) return; const hit = now - cowHit[i] < 260, idle = Math.floor(t * 0.5 + i * 1.7) % 9 === 0 ? 1 : 0, fr = hit ? 2 : idle ? 1 : (Math.floor(t * 0.3 + i) % 7 === 0 ? 3 : 0); ctx.drawImage(im, fr * 24, 0, 24, 24, COWX[i], COWY + (hit ? -1 : 0), 24, 24); });
+  // 발원 법당: lanterns along the eaves (one more per 108 moktak) and the wish banner
+  if (CH && CH.cat !== 'basic') {
+    const nL = Math.min(18, 1 + Math.floor(((CH.tok || 0) + localTok) / 108)), cols = ['#e5484d', '#f0a0b0', '#f3c34f', '#7fb069', '#7cc4e8', '#c9a0e8'];
+    ctx.fillStyle = '#3a2a24'; ctx.fillRect(28, 31, 168, 1);
+    for (let i = 0; i < nL; i++) { const lx = 32 + Math.round(i * (160 / Math.max(1, Math.min(18, nL) - 1 || 1))), sw = Math.round(Math.sin(t * 1.3 + i) * 0.6); ctx.fillStyle = '#2a1a12'; ctx.fillRect(lx + sw, 32, 1, 3); ctx.fillStyle = cols[i % 6]; ctx.fillRect(lx - 2 + sw, 35, 5, 6); ctx.fillStyle = '#fff3b0'; ctx.globalAlpha = 0.5 + 0.3 * Math.sin(t * 2 + i); ctx.fillRect(lx - 1 + sw, 36, 3, 3); ctx.globalAlpha = 1; }
+    ctx.fillStyle = '#000'; ctx.fillRect(25, 117, 174, 28); ctx.fillStyle = '#f8f4ea'; ctx.fillRect(26, 118, 172, 26); ctx.fillStyle = '#d9443a'; ctx.fillRect(26, 118, 172, 2); ctx.fillRect(26, 142, 172, 2);
+    ptext(ctx, CH.text || '', W / 2, 120, '#2a1a12', 'center'); ptext(ctx, CH.title || '', W / 2, 131, '#8b2b2b', 'center', 10);
+  }
+  // cushions
+  SEATS.forEach((s, i) => { ctx.fillStyle = '#000'; ctx.fillRect(s.x - 9, s.y - 4, 18, 8); ctx.fillStyle = seats[i] !== null ? '#8b2b2b' : '#a83a34'; ctx.fillRect(s.x - 8, s.y - 3, 16, 6); ctx.fillStyle = '#c85a4a'; ctx.fillRect(s.x - 8, s.y - 3, 16, 1); });
+  // everyone, back to front
+  const all = [...peers.values()]; if (me) all.push(me);
+  all.sort((a, b) => a.y - b.y);
+  for (const p of all) {
+    const seated = p.seat >= 0, s = seated ? SEATS[p.seat] : null, px = seated ? s.x : p.x, py = seated ? s.y + 2 : p.y;
+    let pose = p.pose || 'stand';
+    if (seated) { const ta = now - (p.actT || -1e9); pose = p.act === 'tok' && ta < 140 ? 'tokhit' : p.act === 'tok' && ta < 600 ? 'tok' : p.act === 'hap' && ta < 1400 ? 'hap' : p.act === 'bow' && ta < 1500 ? (ta < 350 || ta > 1200 ? 'hap' : 'bow') : 'sit'; }
+    else pose = p.moving ? 'walk' : 'stand';
+    if (!seated && p.act === 'hap' && now - p.actT < 1400) pose = 'stand';
+    monk(px, py, pose, t + p.id * 0.13, p.look, !seated && !(p.moving && p.dirUp));
+    if (!seated && p.act === 'hap' && now - p.actT < 1400) { ctx.fillStyle = '#2a1a12'; ctx.fillRect(px - 1, py - 9, 3, 4); ctx.fillStyle = '#efc49a'; ctx.fillRect(px, py - 9, 1, 3); }
+    if (p === me) { const by = py - (seated ? 22 : 25) + (Math.floor(t * 3) % 2); ctx.fillStyle = '#000'; ctx.fillRect(px - 3, by - 1, 7, 4); ctx.fillStyle = '#f3c34f'; ctx.fillRect(px - 2, by, 5, 1); ctx.fillRect(px - 1, by + 1, 3, 1); ctx.fillRect(px, by + 2, 1, 1); }
+    if (p.act === 'tok' && now - p.actT < 350) stext(ctx, '탁!', px + 8, py - 22 - (now - p.actT) / 40, '#fff8d8', 'center');
+  }
+  // syllables: up to the left ear, through the head, out the right ear and away
+  for (let i = flights.length - 1; i >= 0; i--) {
+    const f = flights[i], u = (now - f.t0) / 1500; if (u >= 1) { flights.splice(i, 1); continue; }
+    let x, y, a = 1;
+    if (f.up) { const v = u; x = f.x0 + f.dx * v; y = f.y0 - v * (f.y0 - 30); a = 1 - v * v; ctx.globalAlpha = a; if (v < 0.6) stext(ctx, f.ch, x, y - 6, f.mine ? '#f3c34f' : '#fff8d8', 'center'); else { ctx.fillStyle = '#fff3b0'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2); } ctx.globalAlpha = 1; continue; }
+    if (u < 0.45) { const v = u / 0.45; x = f.x0 + (f.ear1[0] - f.x0) * v; y = f.y0 + (f.ear1[1] - f.y0) * v - Math.sin(v * Math.PI) * 18; if (v > 0.97 && !f.hit) { f.hit = 1; cowHit[f.cow] = now; } }
+    else if (u < 0.55) continue; // inside the cow's head
+    else { const v = (u - 0.55) / 0.45; x = f.ear2[0] + v * 34; y = f.ear2[1] - v * 26 - Math.sin(v * 6) * 2; a = 1 - v; }
+    ctx.globalAlpha = a; stext(ctx, f.ch, x, y - 6, f.mine ? '#f3c34f' : '#fff8d8', 'center'); ctx.globalAlpha = 1;
+  }
+  // cow chatter
+  if (CH && CH.quiet) bubbles.length = 0;
+  for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now - b.t0 > b.life) { bubbles.splice(i, 1); continue; } bubble(b.s, b.x, b.y); }
+  if (practice) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 286, W, 14); ptext(ctx, '연습 모드 · 연습 동자승들과 함께', W / 2, 286, '#f4ead9', 'center'); }
+}
+
+// ───────── me: movement, seats, actions ─────────
+function walkable(x, y) { return { x: Math.max(8, Math.min(W - 8, x)), y: Math.max(128, Math.min(H - 10, y)) }; }
+function seatAt(x, y) { return SEATS.findIndex(s => Math.abs(s.x - x) < 11 && Math.abs(s.y - y) < 9); }
+function toast(s) { const el = $('toast'); el.textContent = s; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200); }
+function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+function goTo(x, y, seat = -1) { if (!me) return; if (me.seat >= 0) standUp(); const p = seat >= 0 ? SEATS[seat] : walkable(x, y); target = { x: p.x, y: seat >= 0 ? p.y + 2 : p.y, seat }; }
+function standUp() { if (!me || me.seat < 0) return; seats[me.seat] = null; me.x = SEATS[me.seat].x; me.y = SEATS[me.seat].y + 10; me.seat = -1; send({ t: 'up' }); refreshButtons(); }
+function sitDown(c) { if (seats[c] !== null && seats[c] !== me.id) { toast('이미 다른 동자승이 앉아 있어요'); return; } seats[c] = me.id; me.seat = c; send({ t: 'sit', c }); refreshButtons(); }
+function act(a) {
+  if (!me) return; initAudio(); const now = performance.now();
+  me.act = a; me.actT = now;
+  if (a === 'tok') {
+    if (me.seat < 0) { toast('방석에 앉아야 목탁을 칠 수 있어요'); return; }
+    const s = SEATS[me.seat], cow = nearestCow(s.x), ch = SUTRA[sutraI++ % SUTRA.length];
+    launch(s.x, s.y - 16, cow, ch, true); tok(0.7, 1, snd); myTok++; localTok++;
+    send({ t: 'act', a: 'tok', cow, ch });
+  } else if (a === 'hap') { send({ t: 'act', a: 'hap' }); if (AC) osc('sine', 880, AC.currentTime, 0.4, 0.03, 0.02); }
+  else if (a === 'bow') {
+    if (me.seat < 0) { toast('방석에 앉아서 절을 올려요'); return; }
+    myBow++; try { localStorage.setItem('ct-bow', myBow % 108); } catch (e) {}
+    send({ t: 'act', a: 'bow', n: myBow });
+    if (myBow >= 108) { myBow = 0; try { localStorage.setItem('ct-bow', 0); } catch (e) {} setTimeout(() => { bell(0.35); toast('108배를 마쳤습니다. 소들은 여전히 한쪽 귀로 흘려들었습니다.'); COWX.forEach((cx, i) => bubbles.push({ s: '음메~!', x: cx + 12, y: COWY - 14, t0: performance.now() + i * 120, life: 2200 })); moo(0.1); }, 1300); }
+  }
+  refreshButtons();
+}
+function refreshButtons() {
+  const seated = me && me.seat >= 0;
+  $('bTok').disabled = !seated; $('bBow').disabled = !seated;
+  $('bowN').textContent = myBow + ' / 108';
+  $('bSeat').innerHTML = seated ? '일어나기<small>마당 걷기</small>' : '빈 방석<small>찾아 앉기</small>';
+}
+function nearestFreeSeat() { let b = -1, d = 1e9; SEATS.forEach((s, i) => { if (seats[i] !== null) return; const dd = Math.hypot(s.x - me.x, s.y - me.y); if (dd < d) { d = dd; b = i; } }); return b; }
+
+// ───────── network ─────────
+const api = (path, opt) => fetch(SERVER.replace(/\/$/, '') + path, opt).then(r => r.json().then(j => ({ ok: r.ok, ...j })));
+const hasServer = () => SERVER && !SERVER.startsWith('/*');
+async function connect(chId) {
+  if (!hasServer()) return startPractice(chId);
+  const wsBase = SERVER.replace(/\/$/, '').replace(/^http/, 'ws');
+  if (!chId) { try { chId = (await api('/pick')).ch || 'b1'; } catch (e) { chId = 'b1'; } }
+  const open = id => new Promise(res => {
+    const s = new WebSocket(wsBase + '/ws?ch=' + id); let done = false;
+    s.onopen = () => s.send(JSON.stringify({ t: 'hi', look, snd }));
+    s.onmessage = ev => { const m = JSON.parse(ev.data); if (!done) { done = true; res({ s, m }); } else onMsg(m); };
+    s.onerror = () => { if (!done) { done = true; res(null); } };
+    s.onclose = () => { if (!done) { done = true; res(null); } else if (ws === s && !leaving) { online = false; toast('연결이 끊겼어요. 다시 들어가는 중…'); setTimeout(() => reconnect(), 2000); } };
+  });
+  for (let tries = 0; tries < 6; tries++) {
+    const r = await open(chId); if (!r) break;
+    if (r.m.t === 'full') { r.s.close(); if (chId[0] === 'b') { chId = 'b' + (+chId.slice(1) + 1); continue; } toast('이 법당은 지금 꽉 찼어요'); showLobby(); return; }
+    if (r.m.t === 'gone') { r.s.close(); toast('닫혔거나 없는 법당이에요'); showLobby(); return; }
+    ws = r.s; online = true; onMsg(r.m); return;
+  }
+  toast('서버에 연결하지 못했어요. 연습 모드로 들어갑니다.'); startPractice(chId);
+}
+async function reconnect() { peers.clear(); seats.fill(null); if (me) me.seat = -1; await connect(CH && CH.id); }
+function addPeer(q) { peers.set(q.id, { ...q, tx: q.x, ty: q.y, act: null, actT: -1e9 }); if (q.seat >= 0) seats[q.seat] = q.id; }
+function onMsg(m) {
+  if (m.t === 'welcome') {
+    const keep = me && { x: me.x, y: me.y };
+    me = { ...m.you, id: m.id, look, snd, act: null, actT: -1e9 }; if (keep) { me.x = keep.x; me.y = keep.y; }
+    CH = m.ch; setSeatCount(m.seats.length);
+    peers.clear(); seats = m.seats.slice(); m.peers.forEach(addPeer);
+    try { history.replaceState(null, '', location.pathname + '?ch=' + CH.id + (params.get('server') ? '&server=' + encodeURIComponent(params.get('server')) : '')); } catch (e) {}
+    updRoom();
+    if (m.stats) setStats(m.stats);
+    refreshButtons();
+  } else if (m.t === 'join') { addPeer(m.p); updRoom(); }
+  else if (m.t === 'leave') { const q = peers.get(m.id); if (q && q.seat >= 0) seats[q.seat] = null; peers.delete(m.id); updRoom(); }
+  else if (m.t === 'mv') { const q = peers.get(m.id); if (q) { if (q.seat >= 0) { seats[q.seat] = null; q.x = SEATS[q.seat].x; q.y = SEATS[q.seat].y + 10; q.seat = -1; } q.tx = m.x; q.ty = m.y; } }
+  else if (m.t === 'sit') { if (m.id === me?.id) return; const q = peers.get(m.id); if (q) { if (q.seat >= 0) seats[q.seat] = null; q.seat = m.c; seats[m.c] = m.id; } }
+  else if (m.t === 'seatno') { if (me && me.seat === m.c) { me.seat = -1; me.y += 10; } toast('이미 다른 동자승이 앉아 있어요'); refreshButtons(); }
+  else if (m.t === 'up') { const q = peers.get(m.id); if (q && q.seat >= 0) { seats[q.seat] = null; q.x = q.tx = SEATS[q.seat].x; q.y = q.ty = SEATS[q.seat].y + 10; q.seat = -1; } }
+  else if (m.t === 'act') { const q = peers.get(m.id); if (!q) return; q.act = m.a; q.actT = performance.now(); if (m.a === 'tok' && q.seat >= 0) { const s = SEATS[q.seat]; launch(s.x, s.y - 16, m.cow, m.ch || '경', false); localTok++; const d = Math.hypot(s.x - (me?.x || 112), s.y - (me?.y || 250)); tok(0.32 * Math.max(0.25, 1 - d / 240), 0.96 + (q.id % 5) * 0.02, q.snd || 0); } }
+  else if (m.t === 'stats') { if (m.s.ch && CH) Object.assign(CH, m.s.ch); setStats(m.s); }
+  else if (m.t === 'look') { const q = peers.get(m.id); if (q) { q.look = m.look; q.snd = m.snd; } }
+  else if (m.t === 'gone') { leaving = true; toast('이 발원 법당이 닫혔어요'); setTimeout(showLobby, 1200); }
+}
+function chName() { return !CH ? '' : CH.cat === 'basic' ? CH.title : (CH.text || CH.title); }
+function updRoom() { if (!CH) return; $('room').textContent = (practice ? '연습 · ' : '') + chName() + ' · ' + (peers.size + 1) + '/' + CH.cap + '명'; }
+function setStats(s) { stats = s; localTok = 0; showStats(); updRoom(); }
+function showStats() {
+  if (CH && CH.cat !== 'basic') { $('counts').innerHTML = `이 발원에 모인 목탁 <b>${((CH.tok || 0) + localTok).toLocaleString('ko-KR')}</b>번 · 절 <b>${((CH.bow || 0)).toLocaleString('ko-KR')}</b>번 · 합장 <b>${(CH.hap || 0).toLocaleString('ko-KR')}</b>번`; return; }
+  const tk = (stats.today?.tok || 0) + localTok;
+  $('counts').innerHTML = `오늘 친 목탁 <b>${tk.toLocaleString('ko-KR')}</b>번 · 소 귀에 들어간 경 <b>${((stats.today?.ear || 0) + localTok).toLocaleString('ko-KR')}</b>자 · 남은 경 <b>0</b>자`;
+}
+
+// ───────── practice mode: a few practice monks, no network ─────────
+const bots = [];
+const practiceChs = [];
+function startPractice(chId) {
+  practice = true; online = false;
+  CH = practiceChs.find(c => c.id === chId) || { id: 'b1', cat: 'basic', title: '연습 법당', text: '', cap: 24, quiet: false };
+  setSeatCount(Math.min(16, CH.cap)); seats = new Array(SEATS.length).fill(null); peers.clear(); bots.length = 0;
+  me = { id: 1, x: 112, y: 284, look, seat: -1, pose: 'stand', act: null, actT: -1e9 };
+  for (let i = 0; i < Math.min(7, CH.cap - 1); i++) { const b = { id: 100 + i, x: 16 + Math.random() * 192, y: 132 + Math.random() * 150, look: (i + 1) % ROBES.length, seat: -1, act: null, actT: -1e9, bot: { next: performance.now() + 500 + i * 900, want: -1 } }; b.tx = b.x; b.ty = b.y; peers.set(b.id, b); bots.push(b); }
+  updRoom(); refreshButtons();
+}
+function botTick(now) {
+  for (const b of bots) {
+    if (now < b.bot.next) continue;
+    if (b.seat < 0) {
+      if (b.bot.want >= 0 && Math.hypot(b.x - SEATS[b.bot.want].x, b.y - SEATS[b.bot.want].y - 2) < 2) { if (seats[b.bot.want] === null) { b.seat = b.bot.want; seats[b.seat] = b.id; } b.bot.want = -1; b.bot.next = now + 800; continue; }
+      if (Math.random() < 0.7) { const free = SEATS.map((s, i) => i).filter(i => seats[i] === null); const c = free[Math.random() * free.length | 0]; if (c !== undefined) { b.bot.want = c; b.tx = SEATS[c].x; b.ty = SEATS[c].y + 2; } }
+      else { const p = walkable(16 + Math.random() * 192, 132 + Math.random() * 150); b.tx = p.x; b.ty = p.y; }
+      b.bot.next = now + 1200;
+    } else {
+      const r = Math.random();
+      if (r < 0.55) { b.act = 'tok'; b.actT = now; const s = SEATS[b.seat]; launch(s.x, s.y - 16, nearestCow(s.x), SUTRA[(now / 97 | 0) % SUTRA.length], false); tok(0.18, 0.97 + (b.id % 4) * 0.02, b.snd || 0); b.bot.next = now + 500 + Math.random() * 500; }
+      else if (r < 0.65) { b.act = 'bow'; b.actT = now; b.bot.next = now + 1700; }
+      else if (r < 0.7) { b.act = 'hap'; b.actT = now; b.bot.next = now + 1500; }
+      else if (r < 0.74) { seats[b.seat] = null; b.x = b.tx = SEATS[b.seat].x; b.y = b.ty = SEATS[b.seat].y + 10; b.seat = -1; b.bot.next = now + 800; }
+      else b.bot.next = now + 900;
+    }
+  }
+}
+
+// ───────── loop ─────────
+let lastT = performance.now(), chatT = 0, birdT = 0, bellT = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  if (me && me.seat < 0) {
+    let vx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0), vy = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
+    if (vx || vy) target = null;
+    else if (target) { const dx = target.x - me.x, dy = target.y - me.y, d = Math.hypot(dx, dy); if (d < 1.5) { me.x = target.x; me.y = target.y; const sTarget = target.seat; target = null; if (sTarget >= 0) sitDown(sTarget); } else { vx = dx / d; vy = dy / d; } }
+    const sp = 50; me.moving = !!(vx || vy); me.dirUp = vy < 0;
+    if (me.moving) { const n = Math.hypot(vx, vy) || 1, p = target && target.seat >= 0 ? { x: me.x + vx / n * sp * dt, y: me.y + vy / n * sp * dt } : walkable(me.x + vx / n * sp * dt, me.y + vy / n * sp * dt); me.x = p.x; me.y = p.y; }
+    const key = Math.round(me.x) + ',' + Math.round(me.y);
+    if (key !== sentXY && now - lastSent > 90) { sentXY = key; lastSent = now; send({ t: 'mv', x: Math.round(me.x), y: Math.round(me.y) }); }
+  } else if (me) me.moving = false;
+  for (const q of peers.values()) { if (q.seat >= 0) { q.moving = false; continue; } const dx = q.tx - q.x, dy = q.ty - q.y, d = Math.hypot(dx, dy); q.moving = d > 1; q.dirUp = dy < -0.5; if (d > 0.5) { const st = Math.min(d, 55 * dt * (d > 40 ? 3 : 1)); q.x += dx / d * st; q.y += dy / d * st; } }
+  if (practice) botTick(now);
+  // NPC moktak, cow chatter, birds, bell
+  if (npcOn && now - npcT > 1500) { npcT = now; npcHit = now; tok(0.07, 1.15, 0); }
+  if (!(CH && CH.quiet) && now - chatT > 5000 + Math.random() * 4000) { chatT = now; const i = Math.random() * 5 | 0; bubbles.push({ s: COWSAY[Math.random() * COWSAY.length | 0], x: COWX[i] + 12, y: COWY - 14, t0: now, life: 1800 }); if (Math.random() < 0.35) moo(0.05); }
+  if (now - birdT > 7000 + Math.random() * 6000) { birdT = now; chirp(); }
+  if (now - bellT > 90000) { bellT = now; if (bellT > 5000) bell(0.18); }
+  draw(now); showStats();
+  requestAnimationFrame(frame);
+}
+function fit() { const st = $('stage'), sw = st.clientWidth - 8, sh = st.clientHeight - 8, k = Math.min(sw / W, sh / H), ik = Math.floor(k); const kk = ik >= 2 ? ik : k; cv.style.width = Math.floor(W * kk) + 'px'; cv.style.height = Math.floor(H * kk) + 'px'; }
+function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+
+// ───────── boot ─────────
+function buildLooks() {
+  const box = $('looks'); box.innerHTML = '';
+  ROBES.forEach((c, i) => { const b = document.createElement('button'); b.style.background = c; b.className = i === look ? 'on' : ''; b.setAttribute('aria-label', '승복 색 ' + (i + 1)); b.onclick = () => { look = i; try { localStorage.setItem('ct-look', i); } catch (e) {} if (me) { me.look = i; send({ t: 'look', look, snd }); } buildLooks(); paintIntro(); }; box.append(b); });
+  const sb = $('snds'); sb.innerHTML = '';
+  SOUNDS.forEach((n, i) => { const b = document.createElement('button'); b.textContent = n; b.className = i === snd ? 'on' : ''; b.onclick = () => { initAudio(); snd = i; try { localStorage.setItem('ct-snd', i); } catch (e) {} if (me) { me.snd = i; send({ t: 'look', look, snd }); } tok(0.7, 1, i); setTimeout(() => tok(0.6, 1, i), 260); buildLooks(); }; sb.append(b); });
+}
+function paintIntro() {
+  for (const [id, wide] of [['introCv', 1], ['optCv', 0]]) {
+    const c = $(id), x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.fillStyle = '#d9c9a8'; x.fillRect(0, 0, c.width, c.height);
+    if (wide && imgs.cow_hanwoo?.complete) x.drawImage(imgs.cow_hanwoo, 0, 0, 24, 24, 60, 4, 24, 24);
+    const mx = wide ? 30 : 32, my = wide ? 42 : 28; x.fillStyle = '#a83a34'; x.fillRect(mx - 8, my - 2, 16, 6);
+    monk(mx, my, 'tok', 0, look, false, x);
+  }
+}
+// ───────── lobby ─────────
+let tab = 'basic', listData = null;
+function row(title, sub, n, cap, onClick) { const d = document.createElement('div'); d.className = 'row'; d.innerHTML = '<div class="t"><b></b><i></i></div><span class="n"></span>'; d.querySelector('b').textContent = title; d.querySelector('i').textContent = sub; const nn = d.querySelector('.n'); nn.textContent = n + '/' + cap + '명'; if (n >= cap) nn.classList.add('full'); d.onclick = onClick; return d; }
+async function loadList() {
+  const box = $('chList');
+  if (!hasServer()) { listData = { basic: [{ id: 'b1', n: 0, cap: 24 }], wish: practiceChs.map(c => ({ ...c, n: 0 })) }; }
+  else { try { listData = await api('/channels'); } catch (e) { listData = null; } }
+  box.innerHTML = '';
+  if (!listData) { box.innerHTML = '<div class="empty">목록을 불러오지 못했어요. 그래도 입장할 수 있어요.</div>'; return; }
+  if (tab === 'basic') listData.basic.forEach(c => box.append(row(+c.id.slice(1) + '번 법당', '누구나 · 24명 · 방석 16개', c.n, c.cap, () => enter(c.id))));
+  else { if (!listData.wish.length) box.innerHTML = '<div class="empty">아직 열린 발원 법당이 없어요.<br>첫 발원 법당을 열어 보세요.</div>'; listData.wish.forEach(c => box.append(row(c.text, c.title + ' · 목탁 ' + (c.tok || 0).toLocaleString('ko-KR') + '번', c.n, c.cap, () => enter(c.id)))); }
+}
+function showLobby() {
+  leaving = true; if (ws) { try { ws.close(); } catch (e) {} } ws = null; online = false; practice = false; me = null; CH = null; peers.clear(); bots.length = 0; flights.length = 0; bubbles.length = 0;
+  try { history.replaceState(null, '', location.pathname + (params.get('server') ? '?server=' + encodeURIComponent(params.get('server')) : '')); } catch (e) {}
+  $('room').textContent = '입장 전'; $('menu').hidden = true; $('intro').hidden = false; loadList(); refreshButtons();
+}
+function enter(chId) { initAudio(); leaving = false; $('intro').hidden = true; tok(0.6, 1, snd); connect(chId); setTimeout(() => toast('방석을 누르면 가서 앉아요. 앉으면 목탁과 절을 할 수 있어요.'), 900); }
+// ───────── 발원 법당 만들기 ─────────
+const mk = { cat: 'heal', cap: 8, pub: true, days: 1 };
+function chips(id, items, key) { const box = $(id); box.innerHTML = ''; items.forEach(([v, label]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.className = mk[key] === v ? 'on' : ''; b.onclick = () => { mk[key] = v; if (key === 'cat') $('mkText').placeholder = CATS.find(c => c[0] === v)[3]; buildMk(); }; box.append(b); }); }
+function buildMk() { chips('mkCat', CATS.map(c => [c[0], c[1]]), 'cat'); chips('mkCap', [[2, '2명'], [4, '4명'], [8, '8명'], [16, '16명']], 'cap'); chips('mkPub', [[true, '목록에 공개'], [false, '초대 링크로만']], 'pub'); chips('mkDays', [[1, '아무도 없으면 하루 뒤'], [7, '아무도 없으면 일주일 뒤']], 'days'); }
+function checkText(t) { t = t.replace(/\s+/g, ' ').trim(); if (!t) return '발원 문구를 써 주세요'; if ([...t].length > 20) return '20자까지 쓸 수 있어요'; if (/https?|www|\.com|\.kr|@/i.test(t)) return '링크나 주소는 넣을 수 없어요'; if (/\d{4,}/.test(t)) return '전화번호처럼 긴 숫자는 넣을 수 없어요'; return ''; }
+async function makeChannel() {
+  const text = $('mkText').value, e = checkText(text); $('mkErr').textContent = e; if (e) return;
+  $('mkGo').disabled = true;
+  try {
+    if (!hasServer()) { const cat = CATS.find(c => c[0] === mk.cat); const c = { id: 'w_practice' + practiceChs.length, cat: mk.cat, title: cat[2], text: text.trim(), cap: mk.cap, pub: mk.pub, quiet: QUIET.includes(mk.cat), tok: 0, bow: 0, hap: 0 }; practiceChs.push(c); try { localStorage.setItem('ct-own-' + c.id, 'local'); } catch (er) {} $('mk').hidden = true; enter(c.id); return; }
+    const r = await api('/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cat: mk.cat, text, cap: mk.cap, pub: mk.pub, days: mk.days }) });
+    if (!r.ok) { $('mkErr').textContent = r.error || '열지 못했어요'; return; }
+    try { localStorage.setItem('ct-own-' + r.ch.id, r.key); } catch (er) {}
+    $('mk').hidden = true; $('mkText').value = ''; enter(r.ch.id);
+    if (!mk.pub) setTimeout(() => toast('초대 링크는 메뉴(≡)에서 복사할 수 있어요'), 3200);
+  } catch (er) { $('mkErr').textContent = '서버에 연결하지 못했어요'; } finally { $('mkGo').disabled = false; }
+}
+function inviteLink() { return location.origin + location.pathname + '?ch=' + CH.id + (params.get('server') ? '&server=' + encodeURIComponent(params.get('server')) : ''); }
+function buildChActs() {
+  const box = $('chActs'); box.innerHTML = ''; if (!CH || CH.cat === 'basic') return;
+  const btn = (label, fn) => { const b = document.createElement('button'); b.className = 'big'; b.style.cssText = 'width:100%;margin:4px 0;font-size:15px'; b.textContent = label; b.onclick = fn; box.append(b); };
+  const t = document.createElement('div'); t.style.cssText = 'text-align:center;margin-bottom:6px'; t.textContent = CH.title + ' · ' + CH.text; box.append(t);
+  btn('초대 링크 복사', async () => { try { await navigator.clipboard.writeText(inviteLink()); toast('초대 링크를 복사했어요'); } catch (e) { prompt('초대 링크', inviteLink()); } });
+  let key = null; try { key = localStorage.getItem('ct-own-' + CH.id); } catch (e) {}
+  if (key) btn('이 발원 법당 닫기', async () => { if (!confirm('이 발원 법당을 닫을까요? 안에 있는 사람들도 나가게 돼요.')) return; if (hasServer()) { const r = await api('/channels/' + CH.id + '/close', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) }); if (!r.ok) { toast(r.error || '닫지 못했어요'); return; } } else { const i = practiceChs.findIndex(c => c.id === CH.id); if (i >= 0) practiceChs.splice(i, 1); } toast('발원 법당을 닫았어요'); showLobby(); });
+  else btn('부적절한 법당 신고', async () => { if (!confirm('이 법당을 신고할까요? 신고가 쌓이면 목록에서 숨겨져요.')) return; if (hasServer()) await api('/channels/' + CH.id + '/report', { method: 'POST' }); toast('신고했어요. 고마워요.'); });
+}
+function boot() {
+  buildLooks(); setTimeout(paintIntro, 300); fit(); window.addEventListener('resize', fit); buildMk(); loadList();
+  for (const b of document.querySelectorAll('.tabs button')) b.onclick = () => { tab = b.dataset.t; for (const o of document.querySelectorAll('.tabs button')) o.classList.toggle('on', o === b); loadList(); };
+  if (inviteCh) { $('enter').textContent = '초대받은 법당으로 입장'; $('invite').hidden = false; $('invite').textContent = '초대받은 법당을 불러오는 중…'; if (hasServer()) api('/channels/' + inviteCh).then(r => { $('invite').textContent = r.ch ? '초대받은 법당: ' + (r.ch.text || r.ch.title) + ' (' + r.ch.title + ')' : '닫혔거나 없는 법당이에요'; }).catch(() => {}); }
+  $('enter').onclick = () => enter(inviteCh || null);
+  $('mkOpen').onclick = () => { $('mk').hidden = false; $('mkErr').textContent = ''; setTimeout(() => $('mkText').focus(), 50); };
+  $('mkCancel').onclick = () => { $('mk').hidden = true; }; $('mkGo').onclick = makeChannel;
+  $('mkText').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') makeChannel(); });
+  const openOpt = () => { buildLooks(); paintIntro(); $('opt').hidden = false; };
+  $('optBtn').onclick = openOpt; $('optOpen2').onclick = openOpt; $('introCv').onclick = openOpt; $('optClose').onclick = () => { $('opt').hidden = true; };
+  cv.addEventListener('pointerdown', e => { if (!me) return; initAudio(); const p = toWorld(e), c = seatAt(p.x, p.y); if (me.seat >= 0 && c === me.seat) { act('tok'); return; } if (c >= 0) { if (seats[c] !== null) { toast('이미 다른 동자승이 앉아 있어요'); return; } goTo(0, 0, c); } else goTo(p.x, p.y); });
+  window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; keys[e.code] = true; if (e.code === 'Space') { e.preventDefault(); act('tok'); } if (e.code === 'KeyB') act('bow'); if (e.code === 'KeyH') act('hap'); });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  $('bTok').onclick = () => act('tok'); $('bBow').onclick = () => act('bow'); $('bHap').onclick = () => act('hap');
+  $('bSeat').onclick = () => { if (!me) return; if (me.seat >= 0) standUp(); else { const c = nearestFreeSeat(); if (c < 0) toast('빈 방석이 없어요. 마당에서 함께 합장해요.'); else goTo(0, 0, c); } };
+  $('menuBtn').onclick = () => { buildChActs(); $('menu').hidden = false; }; $('menuClose').onclick = () => { $('menu').hidden = true; };
+  $('toLobby').onclick = showLobby;
+  const muteLabel = () => { $('mute').textContent = muted ? '소리 켜기' : '소리 끄기'; $('mute').className = muted ? '' : 'on'; };
+  const npcLabel = () => { $('npcBtn').textContent = npcOn ? '목탁스님 반주 끄기' : '목탁스님 반주 켜기'; $('npcBtn').className = npcOn ? 'on' : ''; };
+  muteLabel(); npcLabel();
+  $('mute').onclick = () => { muted = !muted; try { localStorage.setItem('ct-mute', muted ? '1' : '0'); } catch (e) {} if (master) master.gain.value = muted ? 0 : 0.85; muteLabel(); };
+  $('npcBtn').onclick = () => { npcOn = !npcOn; try { localStorage.setItem('ct-npc', npcOn ? '1' : '0'); } catch (e) {} npcLabel(); };
+  refreshButtons();
+  document.fonts.load('12px Galmuri11').then(() => txtCache.clear());
+  requestAnimationFrame(frame);
+  window.__ct = { act, goTo, standUp, me: () => me, peers, seats: () => seats, SEATS: () => SEATS, online: () => online, practice: () => practice, ch: () => CH, stats: () => stats, enter, showLobby };
+}
+boot();
+</script>
+</body>
+</html>

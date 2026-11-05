@@ -1,0 +1,13 @@
+{
+  "name": "cowtemple-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "소 귀에 경 읽는 절 — 실시간 서버 (Cloudflare Workers + Durable Objects)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.152.0"
+  }
+}

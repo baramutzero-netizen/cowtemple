@@ -1,0 +1,23 @@
+name = "cowtemple"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# 법당(방) 하나가 Durable Object 하나, 전체 집계가 하나
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room", "Stats"]
+
+# 메타모아 접속자 수 보고(선택): 키는 여기 적지 말고
+#   npx wrangler secret put METAMOA_KEY
+#   npx wrangler secret put METAMOA_SPACE
+# 로 넣으면 10분마다 보냅니다. 넣지 않으면 아무것도 보내지 않습니다.
+[triggers]
+crons = ["*/10 * * * *"]
