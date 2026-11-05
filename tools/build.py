@@ -16,6 +16,7 @@ for fam in ('Galmuri14', 'Galmuri11'):
     subprocess.run(['pyftsubset', f'{FONTDIR}/{fam}.ttf', f'--text-file={tmp}', '--flavor=woff2', f'--output-file={out}'], check=True)
     css += f"@font-face{{font-family:'{fam}';src:url(data:font/woff2;base64,{base64.b64encode(open(out, 'rb').read()).decode()}) format('woff2');font-display:block}}\n"; os.remove(out)
 os.remove(tmp)
-html = src.replace('/*__FONTS__*/', css).replace('/*__IMAGES__*/{}', json.dumps(imgs)).replace("'/*__SERVER__*/'", json.dumps(server))
+sounds = open(os.path.join(root, 'assets', 'moktak_sounds.json'), encoding='utf-8').read()
+html = src.replace('/*__FONTS__*/', css).replace('/*__SOUNDS__*/{}', sounds).replace('/*__IMAGES__*/{}', json.dumps(imgs)).replace("'/*__SERVER__*/'", json.dumps(server))
 open(os.path.join(root, 'index.html'), 'w', encoding='utf-8').write(html)
 print('built index.html', len(html) // 1024, 'KB', 'server =', server or '(none: practice mode)')

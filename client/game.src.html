@@ -138,6 +138,7 @@ header .opt { font-size: 18px; }
 // The realtime server (Cloudflare Worker). Empty = practice mode with practice monks, no network.
 const SERVER = (new URLSearchParams(location.search).get('server')) || '/*__SERVER__*/';
 const IMG = /*__IMAGES__*/{};
+const SNDS = /*__SOUNDS__*/{};   // the moktak recordings from 소 귀에 경 읽기 (기본, 목탁 1~3; three strikes each)
 const W = 224, H = 300;
 const SUTRA = '관자재보살행심반야바라밀다시조견오온개공도일체고액사리자색불이공공불이색색즉시공공즉시색수상행식역부여시사리자시제법공상불생불멸불구부정부증불감시고공중무색무수상행식무안이비설신의무색성향미촉법무안계내지무의식계무무명역무무명진내지무노사역무노사진무고집멸도무지역무득이무소득고보리살타의반야바라밀다고심무가애무가애고무유공포원리전도몽상구경열반';
 const ROBES = ['#9aa3ad', '#a8865a', '#c9a24a', '#8a9a7a', '#a88aa8', '#7a8aa8'];
@@ -148,7 +149,8 @@ let SEATS = ALLSEATS;
 function setSeatCount(n) { SEATS = n >= 16 ? ALLSEATS : n >= 8 ? ALLSEATS.slice(4, 12) : n >= 4 ? [5, 6, 9, 10].map(i => ALLSEATS[i]) : [5, 6].map(i => ALLSEATS[i]); }
 const CATS = [['heal', '쾌유 기원', '쾌유를 비는 법당', '예: 어머니 수술이 잘 되기를'], ['pass', '합격 기원', '합격을 비는 법당', '예: 동생 수능 대박'], ['family', '가족 평안', '가족의 평안을 비는 법당', '예: 우리 가족 모두 건강하게'], ['memorial', '추모·명복', '명복을 비는 법당', '예: 할머니 편히 쉬세요'], ['thanks', '감사', '감사를 올리는 법당', '예: 무사히 졸업했습니다'], ['free', '직접 쓰기', '발원 법당', '예: 다들 마음 편한 하루']];
 const QUIET = ['heal', 'memorial'];
-const SOUNDS = ['기본 목탁', '맑은 목탁', '큰 목탁', '대나무 딱따기', '싱잉볼', '8비트 목탁'];
+const SOUNDS = ['기본 목탁', '목탁 1', '목탁 2', '목탁 3', '맑은 목탁', '큰 목탁', '대나무 딱따기', '싱잉볼', '8비트 목탁'];
+const SND_SET = ['moktak', 'mk1_', 'mk2_', 'mk3_'];
 const COWSAY = ['음메', '…', '(듣는 척)', '응?', 'Zzz', '음메~', '(한쪽 귀로)', '(되새김질)'];
 
 // ───────── state ─────────
@@ -243,13 +245,14 @@ function monk(x, y, pose, t, lk, front, cx = ctx) {
 // ───────── sound (all synthesized) ─────────
 let AC = null, master, amb, muted = false, npcOn = true;
 try { muted = localStorage.getItem('ct-mute') === '1'; npcOn = localStorage.getItem('ct-npc') !== '0'; } catch (e) {}
-let NOISE;
+let NOISE; const BUF = {};
 function initAudio() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(AC.destination);
     master = AC.createGain(); master.gain.value = muted ? 0 : 0.85; master.connect(comp);
+    for (const k in SNDS) { const b = atob(SNDS[k].split(',')[1]), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); AC.decodeAudioData(u.buffer).then(buf => { BUF[k] = buf; }).catch(() => {}); }
     NOISE = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     // wind bed
     const src = AC.createBufferSource(), f = AC.createBiquadFilter(); amb = AC.createGain(); src.buffer = NOISE; src.loop = true; f.type = 'lowpass'; f.frequency.value = 420; amb.gain.value = 0.035; src.connect(f); f.connect(amb); amb.connect(master); src.start();
@@ -259,19 +262,24 @@ function osc(type, fr, t, dur, vol, a = 0.002) { const o = AC.createOscillator()
 function noise(t, dur, vol, ftype, fr, q = 1) { const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = NOISE; f.type = ftype; f.frequency.value = fr; f.Q.value = q; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random()); s.stop(t + dur + 0.05); }
 function tok(vol = 0.6, pitch = 1, kind = snd) {
   if (!AC) return; const t = AC.currentTime;
-  if (kind === 3) { // 대나무 딱따기: dry hollow clack
+  if (kind <= 3) { // the recorded moktak sets from 소 귀에 경 읽기 — one of three strikes, slightly varied
+    const name = SND_SET[kind] + (Math.random() * 3 | 0), buf = BUF[name];
+    if (buf) { const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = buf; s.playbackRate.value = pitch * (0.97 + Math.random() * 0.06); g.gain.value = vol * 1.1; s.connect(g); g.connect(master); s.start(t); return; }
+    kind = 9;   // not decoded yet: fall back to the synthesized one
+  }
+  if (kind === 6) { // 대나무 딱따기: dry hollow clack
     noise(t, 0.035, vol * 0.5, 'bandpass', 1800 * pitch, 3); const o = osc('triangle', 1100 * pitch, t, 0.05, vol * 0.25, 0.001); o.frequency.exponentialRampToValueAtTime(700 * pitch, t + 0.04); return;
   }
-  if (kind === 4) { // 싱잉볼: soft strike, long shimmering ring
+  if (kind === 7) { // 싱잉볼: soft strike, long shimmering ring
     [[1, 2.6], [2.71, 1.6], [5.1, 0.8]].forEach(([r, d], i) => { const o = osc('sine', 330 * pitch * r, t, d, vol * [0.16, 0.07, 0.03][i], 0.004); o.detune.setValueAtTime(0, t); o.detune.linearRampToValueAtTime(i ? 6 : 3, t + d); }); noise(t, 0.02, vol * 0.08, 'bandpass', 2000, 2); return;
   }
-  if (kind === 5) { // 8비트 목탁
+  if (kind === 8) { // 8비트 목탁
     const o = osc('square', 880 * pitch, t, 0.06, vol * 0.12, 0.001); o.frequency.setValueAtTime(660 * pitch, t + 0.025); osc('square', 1320 * pitch, t, 0.02, vol * 0.06, 0.001); return;
   }
-  const b = [640, 900, 430][kind] * pitch;
+  const k2 = kind === 4 ? 1 : kind === 5 ? 2 : 0, b = [640, 900, 430][k2] * pitch;
   const o = osc('sine', b * 1.9, t, 0.07, vol * 0.5, 0.001); o.frequency.exponentialRampToValueAtTime(b * 1.3, t + 0.012);
-  [[1, kind === 2 ? 0.5 : 0.35], [2.76, 0.18], [5.4, 0.08]].forEach(([r, d], i) => osc('sine', b * r, t + 0.005, d, vol * [0.24, 0.1, 0.05][i]));
-  noise(t, 0.02, vol * 0.15, 'bandpass', kind === 1 ? 3200 : 2400, 2);
+  [[1, k2 === 2 ? 0.5 : 0.35], [2.76, 0.18], [5.4, 0.08]].forEach(([r, d], i) => osc('sine', b * r, t + 0.005, d, vol * [0.24, 0.1, 0.05][i]));
+  noise(t, 0.02, vol * 0.15, 'bandpass', k2 === 1 ? 3200 : 2400, 2);
 }
 function moo(vol = 0.08) {
   if (!AC) return; const t = AC.currentTime, o = AC.createOscillator(), f1 = AC.createBiquadFilter(), f2 = AC.createBiquadFilter(), g = AC.createGain(), base = 100 + Math.random() * 30;

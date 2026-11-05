@@ -152,7 +152,7 @@ export class Room {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!this.limit(p, 'all', 30)) return;
     if (m.t === 'hi' && !p.joined) {
-      p.joined = true; p.look = ok(m.look, 0, 7) ? m.look | 0 : 0; p.snd = ok(m.snd, 0, 5) ? m.snd | 0 : 0; this.add('visit');
+      p.joined = true; p.look = ok(m.look, 0, 7) ? m.look | 0 : 0; p.snd = ok(m.snd, 0, 9) ? m.snd | 0 : 0; this.add('visit');
       p.ws.send(JSON.stringify({ t: 'welcome', id: p.id, ch: this.info, you: this.pub(p), peers: [...this.ps.values()].filter(q => q !== p && q.joined).map(q => this.pub(q)), seats: this.seats, stats: this.lastStats || null }));
       this.cast({ t: 'join', p: this.pub(p) }, p);
     } else if (!p.joined) return;
@@ -166,7 +166,7 @@ export class Room {
       if (p.seat >= 0) this.seats[p.seat] = null;
       this.seats[c] = p.id; p.seat = c; p.pose = 'sit'; this.cast({ t: 'sit', id: p.id, c });
     } else if (m.t === 'up') this.stand(p);
-    else if (m.t === 'look') { if (!this.limit(p, 'look', 3)) return; p.look = ok(m.look, 0, 7) ? m.look | 0 : p.look; p.snd = ok(m.snd, 0, 5) ? m.snd | 0 : p.snd; this.cast({ t: 'look', id: p.id, look: p.look, snd: p.snd }, p); }
+    else if (m.t === 'look') { if (!this.limit(p, 'look', 3)) return; p.look = ok(m.look, 0, 7) ? m.look | 0 : p.look; p.snd = ok(m.snd, 0, 9) ? m.snd | 0 : p.snd; this.cast({ t: 'look', id: p.id, look: p.look, snd: p.snd }, p); }
     else if (m.t === 'act' && ['tok', 'hap', 'bow'].includes(m.a)) {
       if (!this.limit(p, 'act', 12)) return;
       const cow = ok(m.cow, 0, 4) ? m.cow | 0 : 0;
