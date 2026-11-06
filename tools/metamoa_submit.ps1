@@ -3,6 +3,12 @@
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $server = Join-Path $here '..\server'
+$vars0 = Join-Path $server '.dev.vars'
+if ((Test-Path $vars0) -and (Select-String -Path $vars0 -Pattern '^METAMOA_REQUEST_ID=' -Quiet)) {
+  Write-Host '이미 신청했어요 (server\.dev.vars에 신청 번호가 있음). 심사 상태는 이렇게 확인하세요:'
+  Write-Host 'powershell -ExecutionPolicy Bypass -File tools\metamoa_status.ps1'
+  exit 0
+}
 $body = @{
   name = '소 귀에 경 읽는 절'
   url = 'https://baramutzero-netizen.github.io/cowtemple/'
