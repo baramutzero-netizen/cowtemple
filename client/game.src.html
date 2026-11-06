@@ -116,6 +116,8 @@ header .opt { font-size: 18px; }
     <label>승복 색</label><div class="looks" id="looks" style="justify-content:flex-start"></div>
     <label>목탁 소리 <span class="fine">(누르면 들어 볼 수 있어요 · 같은 법당 사람들에게도 이 소리로 들려요)</span></label>
     <div class="snds" id="snds"></div>
+    <label>읽을 경전 <span class="fine">(목탁을 칠 때마다 한 글자씩 소 귀로 날아가요 · 읽던 자리는 기억해요)</span></label>
+    <div class="snds" id="sutras"></div>
     <label>소리</label>
     <div class="chips"><button id="mute">소리 끄기</button><button id="npcBtn">목탁스님 반주 끄기</button></div>
     <button class="big" id="optClose" style="width:100%;margin-top:16px">닫기</button>
@@ -128,7 +130,7 @@ header .opt { font-size: 18px; }
     <section><button class="big" id="toLobby" style="width:100%">다른 법당 보기</button></section>
     <section><b>같은 만든이의 다른 게임</b><br>
       <a href="https://baramutzero-netizen.github.io/moktak/" target="_blank" rel="noopener">소 귀에 경 읽기</a> · <a href="https://baramutzero-netizen.github.io/josammosa/" target="_blank" rel="noopener">조삼모사</a> · <a href="https://baramutzero-netizen.github.io/skyspit/" target="_blank" rel="noopener">앙천이타</a> · <a href="https://baramutzero-netizen.github.io/barnfix/" target="_blank" rel="noopener">소 잃고 외양간 고친다</a> · <a href="https://baramutzero-netizen.github.io/palmsky/" target="_blank" rel="noopener">이장폐천</a> · <a href="https://baramutzero-netizen.github.io/stumprabbit/" target="_blank" rel="noopener">수주대토</a></section>
-    <section class="fine">기본 법당에 사람이 적을 때는 길 안내하는 동자승 한두 명이 함께 있어요. 이 동자승들은 인원 수에 세지 않고, 사람이 앉으려 하면 방석을 비켜 줘요. 로그인도 채팅도 없어요. 서버에는 법당별 지금 인원과 목탁·절·합장 횟수의 합계, 그리고 발원 법당의 문구만 남고, 누가 쳤는지는 남지 않아요. 발원 법당을 여는 횟수를 하루 3개로 제한하려고 접속 주소를 그날만 쓰는 암호로 바꿔 세어요. 도트 그림과 소리는 직접 그리고 합성했어요. 글꼴: 갈무리(Galmuri) © Lee Minseo, SIL OFL 1.1. 경문은 반야심경 한글 독음입니다.<br>문의 baramutzero@gmail.com</section>
+    <section class="fine">기본 법당에 사람이 적을 때는 길 안내하는 동자승 한두 명이 함께 있어요. 이 동자승들은 인원 수에 세지 않고, 사람이 앉으려 하면 방석을 비켜 줘요. 로그인도 채팅도 없어요. 서버에는 법당별 지금 인원과 목탁·절·합장 횟수의 합계, 그리고 발원 법당의 문구만 남고, 누가 쳤는지는 남지 않아요. 발원 법당을 여는 횟수를 하루 3개로 제한하려고 접속 주소를 그날만 쓰는 암호로 바꿔 세어요. 도트 그림과 소리는 직접 그리고 합성했어요. 글꼴: 갈무리(Galmuri) © Lee Minseo, SIL OFL 1.1. 경문은 반야심경과 금강경(구마라집 역) 한글 독음입니다.<br>문의 baramutzero@gmail.com</section>
     <button class="big" id="menuClose" style="width:100%">돌아가기</button>
   </div>
 </div>
@@ -141,6 +143,8 @@ const IMG = /*__IMAGES__*/{};
 const SNDS = /*__SOUNDS__*/{};   // the moktak recordings from 소 귀에 경 읽기 (기본, 목탁 1~3; three strikes each)
 const W = 224, H = 300;
 const SUTRA = '마하반야바라밀다심경관자재보살행심반야바라밀다시조견오온개공도일체고액사리자색불이공공불이색색즉시공공즉시색수상행식역부여시사리자시제법공상불생불멸불구부정부증불감시고공중무색무수상행식무안이비설신의무색성향미촉법무안계내지무의식계무무명역무무명진내지무노사역무노사진무고집멸도무지역무득이무소득고보리살타의반야바라밀다고심무가애무가애고무유공포원리전도몽상구경열반삼세제불의반야바라밀다고득아뇩다라삼먁삼보리고지반야바라밀다시대신주시대명주시무상주시무등등주능제일체고진실불허고설반야바라밀다주즉설주왈아제아제바라아제바라승아제모지사바하아제아제바라아제바라승아제모지사바하아제아제바라아제바라승아제모지사바하';
+const KK = '/*__KK__*/';   // 금강경 (구마라집 역) 한글 독음, from assets/sutra_geumgang.txt
+const SUTRAS = [['반야심경', SUTRA], ['금강경', KK]];
 const ROBES = ['#9aa3ad', '#a8865a', '#c9a24a', '#8a9a7a', '#a88aa8', '#7a8aa8'];
 const COWS = ['hanwoo', 'holstein', 'heuku', 'chik', 'white'];
 const COWX = [30, 66, 102, 138, 174], COWY = 88;
@@ -158,10 +162,10 @@ const $ = id => document.getElementById(id);
 const cv = $('cv'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
 let me = null, peers = new Map(), seats = new Array(16).fill(null), ws = null, online = false, practice = false, roomN = 0, look = 0, snd = 0, CH = null, leaving = false;
 const params = new URLSearchParams(location.search), inviteCh = params.get('ch');
-let myTok = 0, myBow = 0, sutraI = 0, stats = { online: 0, today: {}, all: {} }, localTok = 0;
+let myTok = 0, myBow = 0, sutraK = 0, sutraP = [0, 0], stats = { online: 0, today: {}, all: {} }, localTok = 0;
 const flights = [], bubbles = [], cowHit = [0, 0, 0, 0, 0];
 let keys = {}, target = null, lastSent = 0, sentXY = '', toastT = 0;
-try { look = +(localStorage.getItem('ct-look') || 0) % ROBES.length; snd = +(localStorage.getItem('ct-snd') || 0) % SOUNDS.length; myBow = +(localStorage.getItem('ct-bow') || 0) % 108; } catch (e) {}
+try { look = +(localStorage.getItem('ct-look') || 0) % ROBES.length; snd = +(localStorage.getItem('ct-snd') || 0) % SOUNDS.length; myBow = +(localStorage.getItem('ct-bow') || 0) % 108; sutraK = +(localStorage.getItem('ct-sutra') || 0) % SUTRAS.length; sutraP = SUTRAS.map((s, i) => +(localStorage.getItem('ct-sp' + i) || 0) % s[1].length); } catch (e) {}
 
 // ───────── images ─────────
 const imgs = {}; let imgReady = 0;
@@ -365,7 +369,9 @@ function act(a) {
   me.act = a; me.actT = now;
   if (a === 'tok') {
     if (me.seat < 0) { toast('방석에 앉아야 목탁을 칠 수 있어요'); return; }
-    const s = SEATS[me.seat], cow = nearestCow(s.x), ch = SUTRA[sutraI++ % SUTRA.length];
+    const s = SEATS[me.seat], cow = nearestCow(s.x), S = SUTRAS[sutraK][1], ch = S[sutraP[sutraK]]; sutraP[sutraK] = (sutraP[sutraK] + 1) % S.length;
+    try { localStorage.setItem('ct-sp' + sutraK, sutraP[sutraK]); } catch (e) {}
+    if (sutraP[sutraK] === 0) setTimeout(() => { bell(0.3); toast(SUTRAS[sutraK][0] + ' 한 편을 다 읽었습니다. 소들은 처음부터 한쪽 귀로 흘려들었습니다.'); }, 1200);
     launch(s.x, s.y - 16, cow, ch, true); tok(0.7, 1, snd); myTok++; localTok++;
     send({ t: 'act', a: 'tok', cow, ch });
   } else if (a === 'hap') { send({ t: 'act', a: 'hap' }); if (AC) osc('sine', 880, AC.currentTime, 0.4, 0.03, 0.02); }
@@ -516,6 +522,8 @@ function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clien
 function buildLooks() {
   const box = $('looks'); box.innerHTML = '';
   ROBES.forEach((c, i) => { const b = document.createElement('button'); b.style.background = c; b.className = i === look ? 'on' : ''; b.setAttribute('aria-label', '승복 색 ' + (i + 1)); b.onclick = () => { look = i; try { localStorage.setItem('ct-look', i); } catch (e) {} if (me) { me.look = i; send({ t: 'look', look, snd }); } buildLooks(); paintIntro(); }; box.append(b); });
+  const ub = $('sutras'); ub.innerHTML = '';
+  SUTRAS.forEach(([n, s], i) => { const b = document.createElement('button'); b.textContent = n + ' · ' + sutraP[i].toLocaleString('ko-KR') + ' / ' + s.length.toLocaleString('ko-KR') + '자'; b.className = i === sutraK ? 'on' : ''; b.onclick = () => { sutraK = i; try { localStorage.setItem('ct-sutra', i); } catch (e) {} buildLooks(); }; ub.append(b); });
   const sb = $('snds'); sb.innerHTML = '';
   SOUNDS.forEach((n, i) => { const b = document.createElement('button'); b.textContent = n; b.className = i === snd ? 'on' : ''; b.onclick = () => { initAudio(); snd = i; try { localStorage.setItem('ct-snd', i); } catch (e) {} if (me) { me.snd = i; send({ t: 'look', look, snd }); } tok(0.7, 1, i); setTimeout(() => tok(0.6, 1, i), 260); buildLooks(); }; sb.append(b); });
 }
